@@ -3,7 +3,11 @@ const KEYS = {
   activeListId: 'scanlist_active_id_v2',
   productDb: 'scanlist_product_db_v2',
   theme: 'scanlist_theme_v2',
-  fontSize: 'scanlist_font_size_v2'
+  fontSize: 'scanlist_font_size_v2',
+  // New keys
+  user: 'scanlist_user_v1',
+  allUsers: 'scanlist_all_users_v1',
+  settings: 'scanlist_settings_v1',
 } as const
 
 export function loadJSON<T>(key: string, fallback: T): T {

@@ -11,14 +11,23 @@ import { DuplicateDialog } from './components/DuplicateDialog'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { ListSwitcher } from './components/ListSwitcher'
 import { SettingsSheet } from './components/SettingsSheet'
+import { RegisterScreen } from './components/RegisterScreen'
+import { ProPaywall } from './components/ProPaywall'
+import { AdminPanel } from './components/AdminPanel'
 
 function AppShell() {
-  const { clearActiveList } = useApp()
+  const { clearActiveList, user, registerUser, showPaywall, setShowPaywall } = useApp()
   const { show } = useToast()
   const [scannerOpen, setScannerOpen] = useState(false)
   const [listsOpen, setListsOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false)
+  const [adminOpen, setAdminOpen] = useState(false)
+
+  // Show registration screen if no user
+  if (!user) {
+    return <RegisterScreen onRegister={registerUser} />
+  }
 
   return (
     <div className="max-w-[480px] mx-auto min-h-screen bg-white dark:bg-ink flex flex-col relative">
@@ -30,7 +39,7 @@ function AppShell() {
 
       <ScannerModal open={scannerOpen} onClose={() => setScannerOpen(false)} />
       <ListSwitcher open={listsOpen} onClose={() => setListsOpen(false)} />
-      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} onOpenAdmin={() => setAdminOpen(true)} />
       <DuplicateDialog />
       <ConfirmDialog
         open={clearConfirmOpen}
@@ -46,6 +55,12 @@ function AppShell() {
           show("🗑 Ro'yxat tozalandi")
         }}
       />
+
+      {/* Pro Paywall */}
+      <ProPaywall open={showPaywall} onClose={() => setShowPaywall(false)} user={user} />
+
+      {/* Admin Panel */}
+      <AdminPanel open={adminOpen} onClose={() => setAdminOpen(false)} />
     </div>
   )
 }

@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react'
-import type { ScanListData, ScanItem, ProductDB, ThemeMode, FontSize } from '../types'
+import type { ScanListData, ScanItem, ProductDB, ThemeMode, FontSize, UserProfile, AppSettings } from '../types'
 import { loadJSON, saveJSON, KEYS } from '../lib/storage'
+import { getCurrentUser, createUser, incrementScanCount, canScan, isProActive, updateUser } from '../lib/userManager'
+import { cacheProductDb } from '../lib/offlineDb'
 
 function uid() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
@@ -23,6 +25,9 @@ interface AppContextValue {
   theme: ThemeMode
   fontSize: FontSize
   pendingDuplicate: DuplicateInfo | null
+  user: UserProfile | null
+  settings: AppSettings
+  showPaywall: boolean
 
   createList: (name?: string) => void
   switchList: (id: string) => void
@@ -30,7 +35,7 @@ interface AppContextValue {
   deleteList: (id: string) => void
   clearActiveList: () => void
 
-  scan: (code: string) => void
+  scan: (code: string) => boolean // returns false if limit reached
   confirmDuplicateIncrement: () => void
   dismissDuplicate: () => void
   updateItem: (id: string, code: string, qty: number) => void
@@ -41,6 +46,10 @@ interface AppContextValue {
 
   toggleTheme: () => void
   setFontSize: (size: FontSize) => void
+
+  registerUser: (name: string) => void
+  setVolume: (volume: number) => void
+  setShowPaywall: (show: boolean) => void
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
@@ -55,12 +64,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<ThemeMode>(() => loadJSON<ThemeMode>(KEYS.theme, 'light'))
   const [fontSize, setFontSizeState] = useState<FontSize>(() => loadJSON<FontSize>(KEYS.fontSize, 'normal'))
   const [pendingDuplicate, setPendingDuplicate] = useState<DuplicateInfo | null>(null)
+  const [user, setUser] = useState<UserProfile | null>(() => getCurrentUser())
+  const [settings, setSettings] = useState<AppSettings>(() =>
+    loadJSON<AppSettings>(KEYS.settings, { volume: 80, continuousScan: true })
+  )
+  const [showPaywall, setShowPaywall] = useState(false)
 
   useEffect(() => saveJSON(KEYS.lists, lists), [lists])
   useEffect(() => saveJSON(KEYS.activeListId, activeListId), [activeListId])
   useEffect(() => saveJSON(KEYS.productDb, productDb), [productDb])
   useEffect(() => saveJSON(KEYS.theme, theme), [theme])
   useEffect(() => saveJSON(KEYS.fontSize, fontSize), [fontSize])
+  useEffect(() => saveJSON(KEYS.settings, settings), [settings])
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
@@ -111,18 +126,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [updateActiveList])
 
   const scan = useCallback(
-    (rawCode: string) => {
+    (rawCode: string): boolean => {
       const code = rawCode.trim()
-      if (!code) return
+      if (!code) return true
+
+      // Check scan limit
+      if (user && !canScan(user)) {
+        setShowPaywall(true)
+        return false
+      }
+
       const existing = activeList.items.find(i => i.code === code)
       if (existing) {
         setPendingDuplicate({ code, existingQty: existing.qty })
-        return
+        // Still count as a scan
+        if (user) {
+          const updated = incrementScanCount(user)
+          setUser(updated)
+        }
+        return true
       }
+
       const item: ScanItem = { id: uid(), code, qty: 1, addedAt: new Date().toISOString() }
       updateActiveList(l => ({ ...l, items: [...l.items, item] }))
+
+      // Increment scan counter
+      if (user) {
+        const updated = incrementScanCount(user)
+        setUser(updated)
+      }
+
+      return true
     },
-    [activeList.items, updateActiveList]
+    [activeList.items, updateActiveList, user]
   )
 
   const confirmDuplicateIncrement = useCallback(() => {
@@ -155,13 +191,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   )
 
   const setProductDb = useCallback((db: ProductDB, merge = false) => {
-    setProductDbState(prev => (merge ? { ...prev, ...db } : db))
-  }, [])
+    const finalDb = merge ? { ...productDb, ...db } : db
+    setProductDbState(finalDb)
+    // Cache to IndexedDB for offline use
+    cacheProductDb(finalDb).catch(() => {})
+  }, [productDb])
 
   const clearProductDb = useCallback(() => setProductDbState({}), [])
 
   const toggleTheme = useCallback(() => setTheme(t => (t === 'light' ? 'dark' : 'light')), [])
-  const setFontSize = useCallback((size: FontSize) => setFontSizeState(size), [])
+  const setFontSizeVal = useCallback((size: FontSize) => setFontSizeState(size), [])
+
+  const registerUser = useCallback((name: string) => {
+    const newUser = createUser(name)
+    setUser(newUser)
+  }, [])
+
+  const setVolume = useCallback((volume: number) => {
+    setSettings(prev => ({ ...prev, volume }))
+  }, [])
+
+  // Check if Pro expired on load
+  useEffect(() => {
+    if (user && user.isPro && !isProActive(user)) {
+      const updated = { ...user, isPro: false, proExpiresAt: null }
+      updateUser(updated)
+      setUser(updated)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const value: AppContextValue = {
     lists,
@@ -171,6 +228,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     theme,
     fontSize,
     pendingDuplicate,
+    user,
+    settings,
+    showPaywall,
     createList,
     switchList,
     renameList,
@@ -184,7 +244,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setProductDb,
     clearProductDb,
     toggleTheme,
-    setFontSize
+    setFontSize: setFontSizeVal,
+    registerUser,
+    setVolume,
+    setShowPaywall,
   }
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
