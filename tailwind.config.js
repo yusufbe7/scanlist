@@ -43,10 +43,20 @@ export default {
         laser: {
           '0%,100%': { top: '6%' },
           '50%': { top: '90%' }
+        },
+        'scan-flash': {
+          '0%': { opacity: '0.5' },
+          '100%': { opacity: '0' }
+        },
+        'slide-up': {
+          '0%': { transform: 'translateY(8px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' }
         }
       },
       animation: {
-        laser: 'laser 1.8s ease-in-out infinite'
+        laser: 'laser 1.6s ease-in-out infinite',
+        'scan-flash': 'scan-flash 0.4s ease-out forwards',
+        'slide-up': 'slide-up 0.2s ease-out'
       }
     }
   },
