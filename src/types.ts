@@ -29,3 +29,31 @@ export interface SyncStatus {
   syncing: boolean
   error: string | null
 }
+
+// ─── User & Pro System ─────────────────────────────────────────────────────
+
+export interface UserProfile {
+  id: string
+  name: string
+  createdAt: string
+  isPro: boolean
+  proExpiresAt: string | null
+  totalScans: number
+  dailyScans: Record<string, number>
+}
+
+export interface AdminUser {
+  id: string
+  name: string
+  isPro: boolean
+  proExpiresAt: string | null
+  totalScans: number
+  lastActive: string
+}
+
+// ─── Settings ──────────────────────────────────────────────────────────────
+
+export interface AppSettings {
+  volume: number // 0–100
+  continuousScan: boolean
+}
