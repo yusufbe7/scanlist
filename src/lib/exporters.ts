@@ -104,3 +104,21 @@ export function exportTxt(listName: string, items: ScanItem[]) {
   const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
   saveAs(blob, `scanlist-${listName.replace(/\s+/g, '_')}-${stamp()}.txt`)
 }
+
+
+export function exportCsv(listName: string, items: ScanItem[], productDb: ProductDB) {
+  const rows = enrich(items, productDb)
+  const hasProductInfo = rows.some(r => r.name)
+  const headers = ['№', 'Barcode', ...(hasProductInfo ? ['Mahsulot', 'Narx'] : []), 'Soni', ...(hasProductInfo ? ['Jami'] : []), 'Vaqt']
+  const csvRows = [headers.join(',')]
+  for (const r of rows) {
+    const cells: (string | number | null)[] = [r.idx, `"${r.code}"`]
+    if (hasProductInfo) { cells.push(`"${r.name}"`, r.price) }
+    cells.push(r.qty)
+    if (hasProductInfo) cells.push(r.total)
+    cells.push(`"${r.time}"`)
+    csvRows.push(cells.map(c => c ?? '').join(','))
+  }
+  const blob = new Blob(['\uFEFF' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8' })
+  saveAs(blob, `scanlist-${listName.replace(/\s+/g, '_')}-${stamp()}.csv`)
+}
