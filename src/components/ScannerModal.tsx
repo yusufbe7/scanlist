@@ -97,15 +97,15 @@ export function ScannerModal({ open, onClose }: { open: boolean; onClose: () => 
           () => {}
         )
 
-        try {
-  await instance.applyVideoConstraints({
-    advanced: [
-      {
-        zoom: 2
-      } as unknown as MediaTrackConstraintSet
-    ]
-  })
-} catch {}
+//         try {
+//   await instance.applyVideoConstraints({
+//     advanced: [
+//       {
+//         zoom: 2
+//       } as unknown as MediaTrackConstraintSet
+//     ]
+//   })
+// } catch {}
 
         if (!active) {
           // Component was closed while the camera was still starting up —
@@ -187,8 +187,10 @@ export function ScannerModal({ open, onClose }: { open: boolean; onClose: () => 
       </div>
 
       <div className="flex-1 relative overflow-hidden">
-        <div id={READER_ID} className="w-full h-full [&_video]:object-cover [&_video]:w-full [&_video]:h-full" />
-        <div
+<div
+  id={READER_ID}
+  className="w-full h-full [&_video]:object-contain [&_video]:w-full [&_video]:h-full"
+/>        <div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 border-[2.5px] border-primary rounded-2xl pointer-events-none shadow-[0_0_0_2000px_rgba(0,0,0,0.45)] overflow-hidden"
           style={{ width: boxSize.width, height: boxSize.height }}
         >
