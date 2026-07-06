@@ -12,19 +12,20 @@ const SCAN_FORMATS = [
   Html5QrcodeSupportedFormats.UPC_E,
   Html5QrcodeSupportedFormats.CODE_128,
   Html5QrcodeSupportedFormats.CODE_39,
-  Html5QrcodeSupportedFormats.QR_CODE
 ]
 
 const READER_ID = 'scanlist-reader'
-const PAUSE_MS = 700
+const PAUSE_MS = 150
 
 // Wide, short box — matches barcode proportions. A bigger box gives the
 // decoder a higher-resolution crop to work with, which noticeably improves
 // speed and accuracy on phone cameras (especially in low light).
 function computeBoxSize() {
-  const width = Math.min(340, Math.round(window.innerWidth * 0.86))
-  const height = Math.round(width * 0.42)
-  return { width, height }
+  const width = Math.min(320, window.innerWidth - 40)
+  return {
+    width,
+    height: 90
+  }
 }
 
 export function ScannerModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -37,6 +38,7 @@ export function ScannerModal({ open, onClose }: { open: boolean; onClose: () => 
   const [torchSupported, setTorchSupported] = useState(false)
   const [quickEditCode, setQuickEditCode] = useState<string | null>(null)
   const [boxSize, setBoxSize] = useState(() => computeBoxSize())
+  const lastCodeRef = useRef('')
   const scannerRef = useRef<Html5Qrcode | null>(null)
   const pausedRef = useRef(false)
   const continuousRef = useRef(continuous)
@@ -63,13 +65,20 @@ export function ScannerModal({ open, onClose }: { open: boolean; onClose: () => 
       try {
         await instance.start(
           { facingMode: 'environment' },
-          {
-            fps: 20,
-            qrbox: box,
-            disableFlip: true,
-            videoConstraints: { facingMode: 'environment', advanced: [{ focusMode: 'continuous' } as unknown as MediaTrackConstraintSet] }
-          },
+      {
+    fps: 30,
+    qrbox: box,
+    disableFlip: true,
+    aspectRatio: 1.7778, // 16:9
+   videoConstraints: {
+    facingMode: { ideal: "environment" },
+    width: { ideal: 1280 },
+    height: { ideal: 720 }
+}
+},
           decodedText => {
+            if (lastCodeRef.current === decodedText) return
+            lastCodeRef.current = decodedText
             if (pausedRef.current || !active) return
             pausedRef.current = true
             vibrate()
@@ -87,6 +96,16 @@ export function ScannerModal({ open, onClose }: { open: boolean; onClose: () => 
           },
           () => {}
         )
+
+        try {
+  await instance.applyVideoConstraints({
+    advanced: [
+      {
+        zoom: 2
+      } as unknown as MediaTrackConstraintSet
+    ]
+  })
+} catch {}
 
         if (!active) {
           // Component was closed while the camera was still starting up —
