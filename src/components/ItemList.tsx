@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { Search, Pencil, Trash2, PackageSearch } from 'lucide-react'
+import { Search, Pencil, Trash2, PackageSearch, Tag, AlertTriangle } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { useToast } from '../hooks/useToast'
+import { ProductEditDialog } from './ProductEditDialog'
 
 function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
@@ -13,6 +14,7 @@ export function ItemList() {
   const [query, setQuery] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
+  const [productEditCode, setProductEditCode] = useState<string | null>(null)
 
   const filtered = useMemo(() => {
     const items = query.trim() ? activeList.items.filter(i => i.code.includes(query.trim())) : activeList.items
@@ -55,8 +57,14 @@ export function ItemList() {
           <div className="text-center py-12 text-muted">
             <PackageSearch size={44} className="mx-auto mb-3 opacity-35" />
             <p className="text-sm">
-              {query ? 'Hech narsa topilmadi' : (
-                <>Hali scan qilinmagan.<br />Boshlash uchun yuqoridagi tugmani bosing.</>
+              {query ? (
+                'Hech narsa topilmadi'
+              ) : (
+                <>
+                  Hali scan qilinmagan.
+                  <br />
+                  Boshlash uchun yuqoridagi tugmani bosing.
+                </>
               )}
             </p>
           </div>
@@ -66,7 +74,12 @@ export function ItemList() {
               const info = productDb[item.code]
               const isEditing = editingId === item.id
               return (
-                <div key={item.id} className="flex items-center gap-3 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl px-3.5 py-3">
+                <div
+                  key={item.id}
+                  className={`flex items-center gap-3 rounded-xl px-3.5 py-3 border ${
+                    info ? 'bg-surface dark:bg-surface-dark border-border dark:border-border-dark' : 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/40'
+                  }`}
+                >
                   <div
                     className="w-2 h-8 rounded shrink-0"
                     style={{ background: 'repeating-linear-gradient(90deg, #1D8348 0 2px, transparent 2px 4px)' }}
@@ -84,16 +97,37 @@ export function ItemList() {
                     ) : (
                       <div className="font-mono font-bold text-[15px] text-ink dark:text-ink-dark truncate">
                         {item.code}
-                        {item.qty > 1 && <span className="ml-2 text-xs font-sans font-semibold text-primary bg-primary-light dark:bg-primary/20 rounded-full px-2 py-0.5">x{item.qty}</span>}
+                        {item.qty > 1 && (
+                          <span className="ml-2 text-xs font-sans font-semibold text-primary bg-primary-light dark:bg-primary/20 rounded-full px-2 py-0.5">
+                            x{item.qty}
+                          </span>
+                        )}
                       </div>
                     )}
-                    <div className="text-[11px] text-muted mt-0.5">
+                    <div className="text-[11px] text-muted mt-0.5 truncate">
                       {fmtTime(item.addedAt)}
-                      {info?.name && <span className="ml-2">· {info.name}</span>}
+                      {info?.sku && <span className="ml-2 font-mono">· {info.sku}</span>}
+                      {info?.name && <span className="ml-1">· {info.name}</span>}
                       {info?.price != null && <span className="ml-1">· {(info.price * item.qty).toLocaleString('uz-UZ')} so'm</span>}
+                      {!info && (
+                        <span className="ml-2 text-amber-600 dark:text-amber-500 inline-flex items-center gap-1">
+                          <AlertTriangle size={11} /> Bazada topilmadi
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-1.5 shrink-0">
+                    <button
+                      onClick={() => setProductEditCode(item.code)}
+                      className={`w-8 h-8 rounded-lg border flex items-center justify-center ${
+                        info?.name
+                          ? 'border-primary text-primary bg-primary-light dark:bg-primary/15'
+                          : 'border-amber-300 dark:border-amber-800 text-amber-600 bg-white dark:bg-transparent'
+                      }`}
+                      aria-label="Nom/narx qo'shish"
+                    >
+                      <Tag size={14} />
+                    </button>
                     <button
                       onClick={() => startEdit(item.id, item.code)}
                       className="w-8 h-8 rounded-lg border border-border dark:border-border-dark bg-white dark:bg-transparent flex items-center justify-center text-muted"
@@ -118,6 +152,7 @@ export function ItemList() {
           </div>
         )}
       </div>
+      <ProductEditDialog code={productEditCode} onClose={() => setProductEditCode(null)} />
     </div>
   )
 }

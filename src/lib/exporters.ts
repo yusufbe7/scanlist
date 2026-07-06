@@ -12,6 +12,7 @@ function enrich(items: ScanItem[], productDb: ProductDB) {
     return {
       idx: idx + 1,
       code: i.code,
+      sku: info?.sku ?? '',
       name: info?.name ?? '',
       price: info?.price != null ? info.price : null,
       qty: i.qty,
@@ -24,9 +25,20 @@ function enrich(items: ScanItem[], productDb: ProductDB) {
 export async function exportWord(listName: string, items: ScanItem[], productDb: ProductDB) {
   const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, ShadingType } = await import('docx')
   const rows = enrich(items, productDb)
-  const hasProductInfo = rows.some(r => r.name)
+  const hasSku = rows.some(r => r.sku)
+  const hasName = rows.some(r => r.name)
+  const hasPrice = rows.some(r => r.price != null)
 
-  const headerCells = ['№', 'Barcode', ...(hasProductInfo ? ['Mahsulot', 'Narx'] : []), 'Soni', ...(hasProductInfo ? ['Jami'] : []), 'Vaqt']
+  const headerCells = [
+    '№',
+    'Barcode',
+    ...(hasSku ? ['Tovar kodi'] : []),
+    ...(hasName ? ['Mahsulot'] : []),
+    ...(hasPrice ? ['Narx'] : []),
+    'Soni',
+    ...(hasPrice ? ['Jami'] : []),
+    'Vaqt'
+  ]
 
   const headerRow = new TableRow({
     tableHeader: true,
@@ -45,14 +57,11 @@ export async function exportWord(listName: string, items: ScanItem[], productDb:
         children: [
           new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun(String(r.idx))] })] }),
           new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: r.code, font: 'Courier New' })] })] }),
-          ...(hasProductInfo
-            ? [
-                new TableCell({ children: [new Paragraph(r.name || '—')] }),
-                new TableCell({ children: [new Paragraph(r.price != null ? `${r.price.toLocaleString('uz-UZ')} so'm` : '—')] })
-              ]
-            : []),
+          ...(hasSku ? [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: r.sku || '—', font: 'Courier New' })] })] })] : []),
+          ...(hasName ? [new TableCell({ children: [new Paragraph(r.name || '—')] })] : []),
+          ...(hasPrice ? [new TableCell({ children: [new Paragraph(r.price != null ? `${r.price.toLocaleString('uz-UZ')} so'm` : '—')] })] : []),
           new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun(String(r.qty))] })] }),
-          ...(hasProductInfo ? [new TableCell({ children: [new Paragraph(r.total != null ? `${r.total.toLocaleString('uz-UZ')} so'm` : '—')] })] : []),
+          ...(hasPrice ? [new TableCell({ children: [new Paragraph(r.total != null ? `${r.total.toLocaleString('uz-UZ')} so'm` : '—')] })] : []),
           new TableCell({ children: [new Paragraph(r.time)] })
         ]
       })
@@ -78,16 +87,17 @@ export async function exportWord(listName: string, items: ScanItem[], productDb:
 export async function exportExcel(listName: string, items: ScanItem[], productDb: ProductDB) {
   const XLSX = await import('xlsx')
   const rows = enrich(items, productDb)
-  const hasProductInfo = rows.some(r => r.name)
+  const hasSku = rows.some(r => r.sku)
+  const hasName = rows.some(r => r.name)
+  const hasPrice = rows.some(r => r.price != null)
 
   const data = rows.map(r => {
     const base: Record<string, string | number> = { '№': r.idx, Barcode: r.code }
-    if (hasProductInfo) {
-      base['Mahsulot'] = r.name || ''
-      base['Narx'] = r.price ?? ''
-    }
+    if (hasSku) base['Tovar kodi'] = r.sku
+    if (hasName) base['Mahsulot'] = r.name
+    if (hasPrice) base['Narx'] = r.price ?? ''
     base['Soni'] = r.qty
-    if (hasProductInfo) base['Jami'] = r.total ?? ''
+    if (hasPrice) base['Jami'] = r.total ?? ''
     base['Vaqt'] = r.time
     return base
   })
@@ -103,22 +113,4 @@ export function exportTxt(listName: string, items: ScanItem[]) {
   const text = items.map(i => (i.qty > 1 ? `${i.code} x${i.qty}` : i.code)).join('\n')
   const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
   saveAs(blob, `scanlist-${listName.replace(/\s+/g, '_')}-${stamp()}.txt`)
-}
-
-
-export function exportCsv(listName: string, items: ScanItem[], productDb: ProductDB) {
-  const rows = enrich(items, productDb)
-  const hasProductInfo = rows.some(r => r.name)
-  const headers = ['№', 'Barcode', ...(hasProductInfo ? ['Mahsulot', 'Narx'] : []), 'Soni', ...(hasProductInfo ? ['Jami'] : []), 'Vaqt']
-  const csvRows = [headers.join(',')]
-  for (const r of rows) {
-    const cells: (string | number | null)[] = [r.idx, `"${r.code}"`]
-    if (hasProductInfo) { cells.push(`"${r.name}"`, r.price) }
-    cells.push(r.qty)
-    if (hasProductInfo) cells.push(r.total)
-    cells.push(`"${r.time}"`)
-    csvRows.push(cells.map(c => c ?? '').join(','))
-  }
-  const blob = new Blob(['\uFEFF' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8' })
-  saveAs(blob, `scanlist-${listName.replace(/\s+/g, '_')}-${stamp()}.csv`)
 }

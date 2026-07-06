@@ -2,26 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body, #root { height: 100%; }
-body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
-.text-lg-mode { font-size: 112%; }
-::-webkit-scrollbar { width: 5px; }
-::-webkit-scrollbar-thumb { background: theme('colors.border.DEFAULT'); border-radius: 3px; }
-
-.glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-.dark .glass {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+html, body, #root {
+  height: 100%;
 }
 
-.animate-in { animation: slide-up 0.2s ease-out; }
-@keyframes slide-up { 0% { transform: translateY(8px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+body {
+  font-family: 'Inter', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
 
-input[type="range"] { cursor: pointer; }
-input[type="range"]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: theme('colors.border.DEFAULT'); }
-.dark input[type="range"]::-webkit-slider-runnable-track { background: theme('colors.border.dark'); }
+/* Large font mode (accessibility / low-light warehouse use) */
+.text-lg-mode {
+  font-size: 112%;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: theme('colors.border.DEFAULT');
+  border-radius: 3px;
+}

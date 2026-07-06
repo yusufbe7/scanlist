@@ -29,24 +29,30 @@ npm run preview
 
 ## Funksiyalar
 
-- 📷 Kamera orqali barcode scan (EAN/UPC/CODE128/CODE39/QR) — uzluksiz va bitta-bitta rejim
+- 📷 Kamera orqali barcode scan (EAN/UPC/CODE128/CODE39/QR) — uzluksiz va bitta-bitta rejim, kattaroq/aniqroq scan oynasi
+- 🔦 Fonar (torch) tugmasi — qorong'i ombor/rastalarda yorug'lik yoqib scan qilish (qurilma qo'llab-quvvatlasa)
 - 📋 Bir nechta ro'yxat (bo'lim/smena bo'yicha) — nomlash, almashish, alohida eksport
 - 🔢 Miqdor (qty) — bir xil kod qayta scan qilinsa, avtomatik +1
-- 🏷 Mahsulot bazasi — CSV/Excel yuklab, barcode → nom + narx moslashtirish
-- 📄 Word (.docx), 📊 Excel (.xlsx), 📋 TXT eksport
+- 🏷 Mahsulot bazasi — CSV/Excel yuklab, barcode → tovar kodi + nom + narx moslashtirish. **Yuz minglab qatorli fayllarni** ham qo'llab-quvvatlaydi (IndexedDB'da saqlanadi, localStorage cheklovidan xoli)
+- ⚠️ Bazada topilmagan barcode'lar ro'yxatda alohida (sariq) belgilanadi, bir tegishda nom/narx qo'shish mumkin
+- 📄 Word (.docx), 📊 Excel (.xlsx), 📋 TXT eksport — tovar kodi va nomi bilan birga
 - 🌙 Tungi rejim, 🔠 katta shrift rejimi (ombor sharoiti uchun)
-- 📴 To'liq offline ishlash (localStorage)
+- 📴 To'liq offline ishlash
 - ☁️ Ixtiyoriy bulutga sinxronizatsiya (quyida)
+- 🛡 Xato yuz bersa oq/bo'sh ekran o'rniga qayta yuklash tugmasi chiqadi
 
 ## Mahsulot bazasi fayl formati
 
-CSV yoki Excel, ustunlar (katta-kichik harf farqi yo'q):
+CSV yoki Excel fayl yuklang — ustunlar **avtomatik aniqlanadi**, lotin/o'zbek/rus tilidagi nomlarni tushunadi:
 
-| barcode | name | price |
-|---|---|---|
-| 4780012345678 | Coca-Cola 1L | 18500 |
+| Kerakli maydon | Tanilgan ustun nomlari |
+|---|---|
+| Barcode (majburiy) | `barcode`, `code`, `kod`, `gtin`, `Код GTIN`, `Код GTIN total`, `Ос.Штр.код`, `shtrix` |
+| Nomi (majburiy) | `name`, `nomi`, `mahsulot`, `Название`, `Наименование` |
+| Tovar kodi (ixtiyoriy) | `sku`, `tovar`, `Товар` |
+| Narx (ixtiyoriy) | `price`, `narx`, `narxi`, `Цена` |
 
-`code`/`kod`, `nomi`/`mahsulot`, `narx`/`narxi` nomlari ham qo'llab-quvvatlanadi.
+Fayldagi **barcha varaqlar (sheets)** avtomatik skanerlanadi va mos ustunlar bo'lgan har bir varaqdan ma'lumot olinadi — masalan SAP/1C'dan eksport qilingan `HELP` nomli katta varaq ham to'g'ridan-to'g'ri ishlaydi. Fayl bir marta yuklansa, qurilmada saqlanib qoladi — har safar qayta yuklash shart emas.
 
 ## Bulutga sinxronizatsiya (jamoaviy scan, Pro funksiya)
 
@@ -76,7 +82,15 @@ Sozlanmagan holatda ilova to'liq lokal (offline) rejimda ishlayveradi — hech n
 
 ## Texnologiyalar
 
-React 18 · Vite 5 · TypeScript · Tailwind CSS · vite-plugin-pwa · html5-qrcode · docx · xlsx (SheetJS) · Supabase (ixtiyoriy)
+React 18 · Vite 5 · TypeScript · Tailwind CSS · vite-plugin-pwa · html5-qrcode · docx · xlsx (SheetJS) · idb-keyval (IndexedDB) · Supabase (ixtiyoriy)
+
+## iPhone'da kamera tezligi haqida
+
+iOS Safari/WebKit'da `BarcodeDetector` native API'si qo'llab-quvvatlanmaydi (Android Chrome'dan farqli), shu sababli barcode aniqlash dasturiy (JS) usulda ishlaydi va biroz sekinroq bo'lishi mumkin. Tezlik va aniqlikni oshirish uchun:
+
+- **Fonar tugmasidan foydalaning** — qorong'i/xira yorug'likda bu eng katta farq qiladi.
+- Barcode'ni ramka ichida **to'liq va tekis** tuting, obyektga yaqinroq/uzoqroq turib fokusni sinab ko'ring (iPhone 14 Pro kamerasi masofaga qarab linza almashtiradi — biroz kutish kerak bo'lishi mumkin).
+- Yorug' joyda scan qilish har doim tezroq va aniqroq natija beradi.
 
 ## Loyiha tuzilishi
 
