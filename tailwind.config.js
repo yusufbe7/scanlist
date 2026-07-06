@@ -43,10 +43,16 @@ export default {
         laser: {
           '0%,100%': { top: '6%' },
           '50%': { top: '90%' }
+        },
+        scanFlash: {
+          '0%': { opacity: '0', boxShadow: '0 0 0 0 rgba(16,185,129,0.7) inset' },
+          '30%': { opacity: '1', boxShadow: '0 0 0 6px rgba(16,185,129,0.55) inset' },
+          '100%': { opacity: '0', boxShadow: '0 0 0 0 rgba(16,185,129,0) inset' }
         }
       },
       animation: {
-        laser: 'laser 1.8s ease-in-out infinite'
+        laser: 'laser 1.8s ease-in-out infinite',
+        scanFlash: 'scanFlash 320ms ease-out'
       }
     }
   },
