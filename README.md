@@ -2,6 +2,11 @@
 
 Supermarket xodimlari uchun barcode scan va tayyor ro'yxat eksport qiluvchi PWA ilova.
 
+> 📱 **Yangi: mobil ilova.** Kredit asosidagi to'lov tizimi (tarif: 15 000 so'm → 1000 skan,
+> 30 000 so'm → 3500 skan) va admin tasdiqlash paneli bilan Flutter/Dart ilovasi `mobile/`
+> papkasida joylashgan. Sozlash va ishga tushirish uchun [`mobile/README.md`](mobile/README.md)
+> ga qarang.
+
 ## Ishga tushirish
 
 ```bash
