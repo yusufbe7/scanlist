@@ -1,12 +1,14 @@
 import { useRef, useState } from 'react'
-import { X, Moon, Sun, Type, Database, CloudUpload, CloudOff, Trash2, Loader2 } from 'lucide-react'
+import { X, Moon, Sun, Type, Database, CloudUpload, CloudOff, Trash2, Loader2, LogOut } from 'lucide-react'
 import { useApp } from '../context/AppContext'
+import { useAuth } from '../context/AuthContext'
 import { useToast } from '../hooks/useToast'
 import { parseProductFile } from '../lib/productDb'
 import { isSyncConfigured, pushListToCloud, pullListsFromCloud } from '../lib/supabaseClient'
 
 export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { theme, toggleTheme, fontSize, setFontSize, productDb, productDbLoading, setProductDb, clearProductDb, activeList, lists } = useApp()
+  const { user, profile, signOut } = useAuth()
   const { show } = useToast()
   const fileRef = useRef<HTMLInputElement>(null)
   const [syncing, setSyncing] = useState(false)
@@ -62,6 +64,21 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
         </div>
 
         <div className="p-5 space-y-6">
+          {/* Account */}
+          <section>
+            <h4 className="text-xs font-display font-bold uppercase tracking-wide text-muted mb-2.5">Hisob</h4>
+            <div className="bg-surface dark:bg-black/20 border border-border dark:border-border-dark rounded-xl p-4">
+              <p className="text-sm font-semibold text-ink dark:text-ink-dark truncate">{profile?.fullName || user?.email}</p>
+              <p className="text-xs text-muted truncate mb-3">{user?.email}</p>
+              <button
+                onClick={() => signOut()}
+                className="w-full flex items-center justify-center gap-2 text-danger border border-danger/30 rounded-lg py-2 text-xs font-semibold"
+              >
+                <LogOut size={14} /> Chiqish
+              </button>
+            </div>
+          </section>
+
           {/* Theme */}
           <section>
             <h4 className="text-xs font-display font-bold uppercase tracking-wide text-muted mb-2.5">Ko'rinish</h4>

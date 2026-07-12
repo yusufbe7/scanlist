@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { AppProvider, useApp } from './context/AppContext'
+import { AuthProvider } from './context/AuthContext'
 import { ToastProvider, useToast } from './hooks/useToast'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { Header } from './components/Header'
@@ -12,6 +13,9 @@ import { DuplicateDialog } from './components/DuplicateDialog'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { ListSwitcher } from './components/ListSwitcher'
 import { SettingsSheet } from './components/SettingsSheet'
+import { AuthGate } from './components/auth/AuthGate'
+import { CreditsSheet } from './components/credits/CreditsSheet'
+import { AdminPanel } from './components/admin/AdminPanel'
 
 function AppShell() {
   const { clearActiveList } = useApp()
@@ -20,18 +24,45 @@ function AppShell() {
   const [listsOpen, setListsOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false)
+  const [creditsOpen, setCreditsOpen] = useState(false)
+  const [creditsInitialStep, setCreditsInitialStep] = useState<'overview' | 'tariff'>('overview')
+  const [adminOpen, setAdminOpen] = useState(false)
 
   return (
     <div className="max-w-[480px] mx-auto min-h-screen bg-white dark:bg-ink flex flex-col relative">
-      <Header onOpenLists={() => setListsOpen(true)} onOpenSettings={() => setSettingsOpen(true)} />
+      <Header
+        onOpenLists={() => setListsOpen(true)}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenCredits={() => {
+          setCreditsInitialStep('overview')
+          setCreditsOpen(true)
+        }}
+      />
       <StripeDivider />
       <ScanButton onClick={() => setScannerOpen(true)} />
       <ItemList />
       <ExportBar onRequestClear={() => setClearConfirmOpen(true)} />
 
-      <ScannerModal open={scannerOpen} onClose={() => setScannerOpen(false)} />
+      <ScannerModal
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onNeedCredits={() => {
+          setCreditsInitialStep('tariff')
+          setCreditsOpen(true)
+        }}
+      />
       <ListSwitcher open={listsOpen} onClose={() => setListsOpen(false)} />
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <CreditsSheet
+        open={creditsOpen}
+        initialStep={creditsInitialStep}
+        onClose={() => setCreditsOpen(false)}
+        onOpenAdmin={() => {
+          setCreditsOpen(false)
+          setAdminOpen(true)
+        }}
+      />
+      <AdminPanel open={adminOpen} onClose={() => setAdminOpen(false)} />
       <DuplicateDialog />
       <ConfirmDialog
         open={clearConfirmOpen}
@@ -54,11 +85,15 @@ function AppShell() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <AppProvider>
+      <AuthProvider>
         <ToastProvider>
-          <AppShell />
+          <AuthGate>
+            <AppProvider>
+              <AppShell />
+            </AppProvider>
+          </AuthGate>
         </ToastProvider>
-      </AppProvider>
+      </AuthProvider>
     </ErrorBoundary>
   )
 }

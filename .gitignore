@@ -3,3 +3,6 @@ dist/
 tsconfig.tsbuildinfo
 tsconfig.node.tsbuildinfo
 dev-dist/
+.env
+.env.local
+node_modules/.vite/

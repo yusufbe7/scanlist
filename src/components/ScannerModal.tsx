@@ -5,6 +5,8 @@ import { X, Zap, ZapOff, Flashlight, FlashlightOff, Tag } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { vibrate, beep } from '../lib/feedback'
 import { ProductEditDialog } from './ProductEditDialog'
+import { consumeScanCredit } from '../lib/creditService'
+import { PaywallDialog } from './credits/PaywallDialog'
 
 // ---------------------------------------------------------------------------
 // Tunable constants — har biri texnik topshiriqdagi bosqichlarga mos keladi.
@@ -48,9 +50,18 @@ function computeBoxSize() {
   return { width, height: 90 }
 }
 
-export function ScannerModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function ScannerModal({
+  open,
+  onClose,
+  onNeedCredits
+}: {
+  open: boolean
+  onClose: () => void
+  onNeedCredits: () => void
+}) {
   const { scan, productDb } = useApp()
   const [continuous, setContinuous] = useState(true)
+  const [paywallOpen, setPaywallOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [manualValue, setManualValue] = useState('')
   const [lastPreview, setLastPreview] = useState<{ code: string; name?: string; sku?: string; price?: number } | null>(null)
@@ -172,20 +183,29 @@ export function ScannerModal({ open, onClose }: { open: boolean; onClose: () => 
               if (pausedRef.current) return
               pausedRef.current = true
 
-              vibrate()
-              beep()
-              triggerFlash()
-              scan(text)
-              const info = productDb[text]
-              setLastPreview({ code: text, name: info?.name, sku: info?.sku, price: info?.price })
-
-              window.setTimeout(() => {
-                pausedRef.current = false
-                if (!continuousRef.current) {
-                  ctl.stop()
-                  onClose()
+              consumeScanCredit().then(credit => {
+                if (!active) return
+                if (!credit.allowed) {
+                  pausedRef.current = false
+                  setPaywallOpen(true)
+                  return
                 }
-              }, PAUSE_AFTER_SUCCESS_MS)
+
+                vibrate()
+                beep()
+                triggerFlash()
+                scan(text)
+                const info = productDb[text]
+                setLastPreview({ code: text, name: info?.name, sku: info?.sku, price: info?.price })
+
+                window.setTimeout(() => {
+                  pausedRef.current = false
+                  if (!continuousRef.current) {
+                    ctl.stop()
+                    onClose()
+                  }
+                }, PAUSE_AFTER_SUCCESS_MS)
+              })
             } else if (err && !(err instanceof NotFoundException)) {
               // NotFoundException — har bir "kod topilmadi" kadrida normal holat.
               // Boshqa (kutilmagan) xatolarni jim o'tkazamiz, chunki decode loop
@@ -258,6 +278,17 @@ export function ScannerModal({ open, onClose }: { open: boolean; onClose: () => 
       controlsRef.current = null
     }
   }, [open])
+
+  async function submitManualCode(code: string) {
+    const credit = await consumeScanCredit()
+    if (!credit.allowed) {
+      setPaywallOpen(true)
+      return
+    }
+    scan(code)
+    vibrate()
+    setManualValue('')
+  }
 
   async function toggleTorch() {
     if (!controlsRef.current || !torchSupported) return
@@ -360,9 +391,7 @@ export function ScannerModal({ open, onClose }: { open: boolean; onClose: () => 
           onChange={e => setManualValue(e.target.value)}
           onKeyDown={e => {
             if (e.key === 'Enter' && manualValue.trim()) {
-              scan(manualValue.trim())
-              vibrate()
-              setManualValue('')
+              submitManualCode(manualValue.trim())
             }
           }}
           placeholder="yoki kodni qo'lda kiriting"
@@ -372,9 +401,7 @@ export function ScannerModal({ open, onClose }: { open: boolean; onClose: () => 
         <button
           onClick={() => {
             if (!manualValue.trim()) return
-            scan(manualValue.trim())
-            vibrate()
-            setManualValue('')
+            submitManualCode(manualValue.trim())
           }}
           className="bg-primary text-white rounded-[10px] px-4 font-bold"
         >
@@ -383,6 +410,15 @@ export function ScannerModal({ open, onClose }: { open: boolean; onClose: () => 
       </div>
 
       <ProductEditDialog code={quickEditCode} onClose={() => setQuickEditCode(null)} />
+      <PaywallDialog
+        open={paywallOpen}
+        onClose={() => setPaywallOpen(false)}
+        onBuyCredits={() => {
+          setPaywallOpen(false)
+          onClose()
+          onNeedCredits()
+        }}
+      />
     </div>
   )
 }
