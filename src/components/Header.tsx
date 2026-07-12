@@ -1,5 +1,6 @@
-import { ListChecks, Settings, Package } from 'lucide-react'
+import { ListChecks, Settings, Package, Diamond } from 'lucide-react'
 import { useApp } from '../context/AppContext'
+import { useAuth } from '../context/AuthContext'
 
 function isToday(iso: string) {
   const d = new Date(iso)
@@ -11,8 +12,17 @@ function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
 }
 
-export function Header({ onOpenLists, onOpenSettings }: { onOpenLists: () => void; onOpenSettings: () => void }) {
+export function Header({
+  onOpenLists,
+  onOpenSettings,
+  onOpenCredits
+}: {
+  onOpenLists: () => void
+  onOpenSettings: () => void
+  onOpenCredits: () => void
+}) {
   const { activeList, lists } = useApp()
+  const { profile } = useAuth()
   const todayCount = activeList.items.filter(i => isToday(i.addedAt)).length
   const totalCount = activeList.items.reduce((s, i) => s + i.qty, 0)
   const last = activeList.items[activeList.items.length - 1]
@@ -27,6 +37,13 @@ export function Header({ onOpenLists, onOpenSettings }: { onOpenLists: () => voi
           ScanList
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={onOpenCredits}
+            className="flex items-center gap-1.5 bg-white/15 border border-white/25 rounded-full pl-2.5 pr-3 py-1.5 text-sm font-semibold active:scale-95 transition"
+          >
+            <Diamond size={14} />
+            {profile?.credits ?? 0}
+          </button>
           <button
             onClick={onOpenLists}
             className="flex items-center gap-1.5 bg-white/15 border border-white/25 rounded-full pl-3 pr-3.5 py-1.5 text-sm font-semibold active:scale-95 transition"

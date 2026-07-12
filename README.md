@@ -2,10 +2,16 @@
 
 Supermarket xodimlari uchun barcode scan va tayyor ro'yxat eksport qiluvchi PWA ilova.
 
-> 📱 **Yangi: mobil ilova.** Kredit asosidagi to'lov tizimi (tarif: 15 000 so'm → 1000 skan,
-> 30 000 so'm → 3500 skan) va admin tasdiqlash paneli bilan Flutter/Dart ilovasi `mobile/`
-> papkasida joylashgan. Sozlash va ishga tushirish uchun [`mobile/README.md`](mobile/README.md)
-> ga qarang.
+> 📱 **Mobil ilova.** Xuddi shu kredit/to'lov/admin tizimiga ega Flutter/Dart ilovasi `mobile/`
+> papkasida joylashgan (ikkalasi ham bitta Supabase backendni ishlatadi). Batafsil:
+> [`mobile/README.md`](mobile/README.md).
+
+## ⚠️ Supabase endi majburiy
+
+Ilova endi kirish (login) va kredit tizimi bilan ishlaydi, shu sababli **Supabase sozlanmasa
+ilova ochilmaydi** ("Bulutga sinxronizatsiya" bo'limidagi eski ixtiyoriy `scanlist_lists`
+jamoaviy-ro'yxat funksiyasidan farqli o'laroq). Birinchi ishga tushirishdan oldin quyidagi
+"Kirish va kredit tizimi" bo'limiga qarang.
 
 ## Ishga tushirish
 
@@ -42,9 +48,15 @@ npm run preview
 - ⚠️ Bazada topilmagan barcode'lar ro'yxatda alohida (sariq) belgilanadi, bir tegishda nom/narx qo'shish mumkin
 - 📄 Word (.docx), 📊 Excel (.xlsx), 📋 TXT eksport — tovar kodi va nomi bilan birga
 - 🌙 Tungi rejim, 🔠 katta shrift rejimi (ombor sharoiti uchun)
-- 📴 To'liq offline ishlash
-- ☁️ Ixtiyoriy bulutga sinxronizatsiya (quyida)
+- 📴 Kirgandan keyin to'liq offline ishlaydi (skan/ro'yxat ma'lumotlari qurilmada saqlanadi)
+- ☁️ Ixtiyoriy jamoaviy ro'yxat sinxronizatsiyasi (pastda, alohida funksiya)
 - 🛡 Xato yuz bersa oq/bo'sh ekran o'rniga qayta yuklash tugmasi chiqadi
+- 🔐 Email/parol bilan kirish, har bir foydalanuvchining o'z kredit balansi
+- 💳 **Kredit tizimi**: ro'yxatdan o'tgach belgilangan sonda bepul skan (standart 50 ta, admin
+  panelda o'zgartiriladi), keyin kredit tugaydi — 15 000 so'm → 1000 skan, 30 000 so'm → 3500 skan
+- 🧾 To'lov: rekvizitga pul o'tkazib, chek rasmini ilovaga yuklash
+- 🛠 **Admin panel**: to'lovlarni tasdiqlash/rad etish (tasdiqlansa kredit avtomatik qo'shiladi),
+  foydalanuvchilar ro'yxati, to'lov rekviziti/bepul limitni tahrirlash
 
 ## Mahsulot bazasi fayl formati
 
@@ -59,7 +71,28 @@ CSV yoki Excel fayl yuklang — ustunlar **avtomatik aniqlanadi**, lotin/o'zbek/
 
 Fayldagi **barcha varaqlar (sheets)** avtomatik skanerlanadi va mos ustunlar bo'lgan har bir varaqdan ma'lumot olinadi — masalan SAP/1C'dan eksport qilingan `HELP` nomli katta varaq ham to'g'ridan-to'g'ri ishlaydi. Fayl bir marta yuklansa, qurilmada saqlanib qoladi — har safar qayta yuklash shart emas.
 
-## Bulutga sinxronizatsiya (jamoaviy scan, Pro funksiya)
+## Kirish va kredit tizimi
+
+1. [supabase.com](https://supabase.com) da yangi (bepul) loyiha oching — **web va mobil ilova bitta
+   loyihani baham ko'rishi mumkin**.
+2. SQL Editor'da [`mobile/supabase/schema.sql`](mobile/supabase/schema.sql) faylini to'liq ishga
+   tushiring (profillar, to'lovlar, sozlamalar jadvallari, RLS, `receipts` Storage bucket).
+3. `.env.example` faylini `.env` deb nusxalab, **Project URL** va **anon public key**'ni kiriting.
+4. Ilovada oddiy foydalanuvchi sifatida ro'yxatdan o'ting, so'ng SQL Editor'da o'zingizni admin
+   qilib tayinlang:
+
+   ```sql
+   update public.profiles set role = 'admin'
+   where id = (select id from auth.users where email = 'sizning-emailingiz@example.com');
+   ```
+
+5. Ilovani qayta ishga tushiring — endi kirish (login) ekrani, kredit balansi (header'dagi 💎
+   nishonchasi), "Kredit sotib olish" oynasi va (admin uchun) Admin panel ishlaydi.
+
+To'lov rekviziti (karta raqami) va bepul limit kod o'zgartirmasdan, to'g'ridan-to'g'ri
+**Admin panel → Sozlamalar** bo'limidan tahrirlanadi.
+
+## Bulutga sinxronizatsiya (jamoaviy scan, alohida ixtiyoriy funksiya)
 
 Bir necha xodim bir ro'yxatga birga scan qilishi uchun bepul [Supabase](https://supabase.com) loyihasi oching:
 
@@ -101,9 +134,14 @@ iOS Safari/WebKit'da `BarcodeDetector` native API'si qo'llab-quvvatlanmaydi (And
 
 ```
 src/
-  components/     UI komponentlari
-  context/         Global holat (ro'yxatlar, mahsulot bazasi, tema)
-  hooks/           useToast va boshqa hook'lar
-  lib/             export, storage, product-db parser, supabase client
-  types.ts         TypeScript tiplari
+  components/
+    auth/          Kirish / ro'yxatdan o'tish ekranlari
+    credits/        Kredit balans, tarif tanlash, chek yuklash, to'lovlar tarixi
+    admin/          Admin panel (to'lovlar, foydalanuvchilar, sozlamalar)
+    ...             Skaner, ro'yxat, sozlamalar va boshqa UI komponentlari
+  context/           Global holat (ro'yxatlar/mahsulot bazasi/tema + auth/profil)
+  hooks/             useToast va boshqa hook'lar
+  lib/               export, storage, product-db parser, supabase client,
+                     credit/payment/admin/settings servislari
+  types.ts           TypeScript tiplari
 ```

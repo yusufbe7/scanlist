@@ -30,3 +30,40 @@ export interface SyncStatus {
   syncing: boolean
   error: string | null
 }
+
+export interface AppProfile {
+  id: string
+  fullName: string | null
+  phone: string | null
+  role: 'user' | 'admin'
+  credits: number
+  freeScansUsed: number
+}
+
+export type PaymentStatus = 'pending' | 'approved' | 'rejected'
+
+export interface PaymentRecord {
+  id: string
+  userId: string
+  amount: number
+  credits: number
+  receiptPath: string
+  status: PaymentStatus
+  rejectReason: string | null
+  createdAt: string
+  reviewedAt: string | null
+  userFullName?: string | null
+  userPhone?: string | null
+}
+
+export interface AppSettings {
+  freeScanLimit: number
+  paymentCardNumber: string
+  paymentCardOwner: string
+  paymentPhone: string | null
+}
+
+export interface CreditTariff {
+  amount: number
+  credits: number
+}
